@@ -2007,6 +2007,21 @@ builtin_print_impl(PyObject *module, PyObject *args, PyObject *sep,
                      Py_TYPE(end)->tp_name);
         return NULL;
     }
+    // Calculate number of dashes needed: we assume sep='\n', find the max of all objects
+
+    Py_ssize_t max_length = 0;
+    for (i = 0; i < PyTuple_GET_SIZE(args); i++) {
+        Py_ssize_t len = PyObject_Size(PyTuple_GET_ITEM(args, i));
+
+        if (len > max_length) {
+            max_length = len;
+        }
+    }
+
+    for(int i = 0; i < max_length+2; i++) {
+        err = PyFile_WriteString("-", file);
+    }
+    err = PyFile_WriteString("\n", file);
 
     for (i = 0; i < PyTuple_GET_SIZE(args); i++) {
         if (i > 0) {
@@ -2020,11 +2035,33 @@ builtin_print_impl(PyObject *module, PyObject *args, PyObject *sep,
                 return NULL;
             }
         }
+        err = PyFile_WriteString("|", file);
         err = PyFile_WriteObject(PyTuple_GET_ITEM(args, i), file, Py_PRINT_RAW);
+
+        Py_ssize_t len = PyObject_Size(PyTuple_GET_ITEM(args, i));
+
+        for(int i = 0; i < max_length - len; i++) {
+            err = PyFile_WriteString(" ", file);
+        }
+
+        err = PyFile_WriteString("|", file);
         if (err) {
             return NULL;
         }
     }
+
+    // Print the dashes
+    err = PyFile_WriteString("\n", file);
+    for(int i = 0; i < max_length+2; i++) {
+        err = PyFile_WriteString("-", file);
+    }
+
+    // Print the cow underneath the text
+    err = PyFile_WriteString("\n        \\   ^__^\n", file);
+    err = PyFile_WriteString("         \\  (oo)\\_______\n", file);
+    err = PyFile_WriteString("            (__)\\       )\\/\\\n", file);
+    err = PyFile_WriteString("                ||----w |\n", file);
+    err = PyFile_WriteString("                ||     ||\n", file);
 
     if (end == NULL) {
         err = PyFile_WriteString("\n", file);
