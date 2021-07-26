@@ -1953,6 +1953,49 @@ builtin_pow_impl(PyObject *module, PyObject *base, PyObject *exp,
 }
 
 /*[clinic input]
+fortune as builtin_fortune
+
+    name: object
+
+Prints a fortune quote with a custom name.
+
+[clinic start generated code]*/
+
+static PyObject *
+builtin_fortune_impl(PyObject *module, PyObject *name)
+/*[clinic end generated code: output=ef80e2e08113f3a6 input=d370d0261172afe8]*/
+{
+    FILE *fp;
+    char final_string[10000];
+    char line[1000];
+    int length = 0;
+
+    // Create tuple for print
+    PyObject *ittuple = PyTuple_New(2);
+    if (ittuple == NULL)
+        return NULL;
+
+    // Obtain the fortune quote from system
+    fp = popen("fortune -n 50", "r");
+    if (fp == NULL) {
+        printf("Failed to run command\n" );
+        exit(1);
+    }
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        length += sprintf(final_string + length, "%s", line);
+    }
+    pclose(fp);
+
+    // Fill the tuple with the supplied name and the quote
+    PyTuple_SET_ITEM(ittuple, 0, name);
+    PyTuple_SET_ITEM(ittuple, 1, PyUnicode_FromString(final_string));
+
+    // Print the quote
+    return builtin_print_impl(module, ittuple, PyUnicode_FromString("\n"), Py_None, Py_None, 0, 1);
+
+}
+
+/*[clinic input]
 print as builtin_print
 
     *args: object
@@ -2988,6 +3031,7 @@ static PyMethodDef builtin_methods[] = {
     BUILTIN_EVAL_METHODDEF
     BUILTIN_EXEC_METHODDEF
     BUILTIN_FORMAT_METHODDEF
+    {"fortune", (PyCFunction)(void(*)(void))builtin_fortune, METH_FASTCALL|METH_KEYWORDS, builtin_fortune__doc__},
     {"getattr",         (PyCFunction)(void(*)(void))builtin_getattr, METH_FASTCALL, getattr_doc},
     BUILTIN_GLOBALS_METHODDEF
     BUILTIN_HASATTR_METHODDEF

@@ -674,6 +674,38 @@ exit:
     return return_value;
 }
 
+PyDoc_STRVAR(builtin_fortune__doc__,
+"fortune($module, /, name)\n"
+"--\n"
+"\n"
+"Prints a fortune quote with a custom name.");
+
+#define BUILTIN_FORTUNE_METHODDEF    \
+    {"fortune", (PyCFunction)(void(*)(void))builtin_fortune, METH_FASTCALL|METH_KEYWORDS, builtin_fortune__doc__},
+
+static PyObject *
+builtin_fortune_impl(PyObject *module, PyObject *name);
+
+static PyObject *
+builtin_fortune(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"name", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "fortune", 0};
+    PyObject *argsbuf[1];
+    PyObject *name;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    name = args[0];
+    return_value = builtin_fortune_impl(module, name);
+
+exit:
+    return return_value;
+}
+
 PyDoc_STRVAR(builtin_print__doc__,
 "print($module, /, *args, sep=\' \', end=\'\\n\', file=None, flush=False,\n"
 "      cow=True)\n"
@@ -964,4 +996,4 @@ builtin_issubclass(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=d1cd702c7140510c input=a9049054013a1b77]*/
+/*[clinic end generated code: output=ed8f4cf204c97eba input=a9049054013a1b77]*/
