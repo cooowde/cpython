@@ -2516,6 +2516,7 @@ _PyArg_UnpackKeywordsWithVararg(PyObject *const *args, Py_ssize_t nargs,
     else {
         nkwargs = 0;
     }
+
     if (nargs < minposonly) {
         PyErr_Format(PyExc_TypeError,
                      "%.200s%s takes %s %d positional argument%s"
