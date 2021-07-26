@@ -674,8 +674,41 @@ exit:
     return return_value;
 }
 
+PyDoc_STRVAR(builtin_fortune__doc__,
+"fortune($module, /, name)\n"
+"--\n"
+"\n"
+"Prints a fortune quote with a custom name.");
+
+#define BUILTIN_FORTUNE_METHODDEF    \
+    {"fortune", (PyCFunction)(void(*)(void))builtin_fortune, METH_FASTCALL|METH_KEYWORDS, builtin_fortune__doc__},
+
+static PyObject *
+builtin_fortune_impl(PyObject *module, PyObject *name);
+
+static PyObject *
+builtin_fortune(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"name", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "fortune", 0};
+    PyObject *argsbuf[1];
+    PyObject *name;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    name = args[0];
+    return_value = builtin_fortune_impl(module, name);
+
+exit:
+    return return_value;
+}
+
 PyDoc_STRVAR(builtin_print__doc__,
-"print($module, /, *args, sep=\' \', end=\'\\n\', file=None, flush=False)\n"
+"print($module, /, *args, sep=\' \', end=\'\\n\', file=None, flush=False,\n"
+"      cow=True)\n"
 "--\n"
 "\n"
 "Prints the values to a stream, or to sys.stdout by default.\n"
@@ -687,28 +720,31 @@ PyDoc_STRVAR(builtin_print__doc__,
 "  file\n"
 "    a file-like object (stream); defaults to the current sys.stdout.\n"
 "  flush\n"
-"    whether to forcibly flush the stream.");
+"    whether to forcibly flush the stream.\n"
+"  cow\n"
+"    whether to show the cow.");
 
 #define BUILTIN_PRINT_METHODDEF    \
     {"print", (PyCFunction)(void(*)(void))builtin_print, METH_FASTCALL|METH_KEYWORDS, builtin_print__doc__},
 
 static PyObject *
 builtin_print_impl(PyObject *module, PyObject *args, PyObject *sep,
-                   PyObject *end, PyObject *file, int flush);
+                   PyObject *end, PyObject *file, int flush, int cow);
 
 static PyObject *
 builtin_print(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = {"sep", "end", "file", "flush", NULL};
+    static const char * const _keywords[] = {"sep", "end", "file", "flush", "cow", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "print", 0};
-    PyObject *argsbuf[5];
+    PyObject *argsbuf[6];
     Py_ssize_t noptargs = 0 + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
     PyObject *__clinic_args = NULL;
     PyObject *sep = Py_None;
     PyObject *end = Py_None;
     PyObject *file = Py_None;
     int flush = 0;
+    int cow = 1;
 
     args = _PyArg_UnpackKeywordsWithVararg(args, nargs, NULL, kwnames, &_parser, 0, 0, 0, 0, argsbuf);
     if (!args) {
@@ -736,12 +772,21 @@ builtin_print(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObjec
             goto skip_optional_kwonly;
         }
     }
-    flush = PyObject_IsTrue(args[4]);
-    if (flush < 0) {
+    if (args[4]) {
+        flush = PyObject_IsTrue(args[4]);
+        if (flush < 0) {
+            goto exit;
+        }
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    cow = PyObject_IsTrue(args[5]);
+    if (cow < 0) {
         goto exit;
     }
 skip_optional_kwonly:
-    return_value = builtin_print_impl(module, __clinic_args, sep, end, file, flush);
+    return_value = builtin_print_impl(module, __clinic_args, sep, end, file, flush, cow);
 
 exit:
     Py_XDECREF(__clinic_args);
@@ -951,4 +996,4 @@ builtin_issubclass(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=77ace832b3fb38e0 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=ed8f4cf204c97eba input=a9049054013a1b77]*/

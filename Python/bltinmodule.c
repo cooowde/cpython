@@ -1953,6 +1953,49 @@ builtin_pow_impl(PyObject *module, PyObject *base, PyObject *exp,
 }
 
 /*[clinic input]
+fortune as builtin_fortune
+
+    name: object
+
+Prints a fortune quote with a custom name.
+
+[clinic start generated code]*/
+
+static PyObject *
+builtin_fortune_impl(PyObject *module, PyObject *name)
+/*[clinic end generated code: output=ef80e2e08113f3a6 input=d370d0261172afe8]*/
+{
+    FILE *fp;
+    char final_string[10000];
+    char line[1000];
+    int length = 0;
+
+    // Create tuple for print
+    PyObject *ittuple = PyTuple_New(2);
+    if (ittuple == NULL)
+        return NULL;
+
+    // Obtain the fortune quote from system
+    fp = popen("fortune -n 50", "r");
+    if (fp == NULL) {
+        printf("Failed to run command\n" );
+        exit(1);
+    }
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        length += sprintf(final_string + length, "%s", line);
+    }
+    pclose(fp);
+
+    // Fill the tuple with the supplied name and the quote
+    PyTuple_SET_ITEM(ittuple, 0, name);
+    PyTuple_SET_ITEM(ittuple, 1, PyUnicode_FromString(final_string));
+
+    // Print the quote
+    return builtin_print_impl(module, ittuple, PyUnicode_FromString("\n"), Py_None, Py_None, 0, 1);
+
+}
+
+/*[clinic input]
 print as builtin_print
 
     *args: object
@@ -1964,6 +2007,8 @@ print as builtin_print
         a file-like object (stream); defaults to the current sys.stdout.
     flush: bool = False
         whether to forcibly flush the stream.
+    cow: bool = True
+        whether to show the cow.
 
 Prints the values to a stream, or to sys.stdout by default.
 
@@ -1971,10 +2016,11 @@ Prints the values to a stream, or to sys.stdout by default.
 
 static PyObject *
 builtin_print_impl(PyObject *module, PyObject *args, PyObject *sep,
-                   PyObject *end, PyObject *file, int flush)
-/*[clinic end generated code: output=3cfc0940f5bc237b input=c143c575d24fe665]*/
+                   PyObject *end, PyObject *file, int flush, int cow)
+/*[clinic end generated code: output=31d934cfec605aaa input=1ae5f6ef0cd53d0f]*/
 {
     int i, err;
+    Py_ssize_t max_length = 0;
 
     if (file == Py_None) {
         file = _PySys_GetObjectId(&PyId_stdout);
@@ -2008,6 +2054,22 @@ builtin_print_impl(PyObject *module, PyObject *args, PyObject *sep,
         return NULL;
     }
 
+    if (cow)  {
+        // Calculate number of dashes needed: we assume sep='\n', find the max of all objects
+        for (i = 0; i < PyTuple_GET_SIZE(args); i++) {
+            Py_ssize_t len = PyObject_Size(PyTuple_GET_ITEM(args, i));
+
+            if (len > max_length) {
+                max_length = len;
+            }
+        }
+
+        for(int i = 0; i < max_length+2; i++) {
+            err = PyFile_WriteString("-", file);
+        }
+        err = PyFile_WriteString("\n", file);
+    }
+
     for (i = 0; i < PyTuple_GET_SIZE(args); i++) {
         if (i > 0) {
             if (sep == NULL) {
@@ -2020,10 +2082,40 @@ builtin_print_impl(PyObject *module, PyObject *args, PyObject *sep,
                 return NULL;
             }
         }
+        if (cow) {
+            err = PyFile_WriteString("|", file);
+        }
+
+        // Print the object
         err = PyFile_WriteObject(PyTuple_GET_ITEM(args, i), file, Py_PRINT_RAW);
+
+
+        if (cow) {
+            Py_ssize_t len = PyObject_Size(PyTuple_GET_ITEM(args, i));
+            for(int i = 0; i < max_length - len; i++) {
+                err = PyFile_WriteString(" ", file);
+            }
+
+            err = PyFile_WriteString("|", file);
+        }
         if (err) {
             return NULL;
         }
+    }
+
+    if (cow) {
+        // Print the dashes
+        err = PyFile_WriteString("\n", file);
+        for(int i = 0; i < max_length+2; i++) {
+            err = PyFile_WriteString("-", file);
+        }
+
+        // Print the cow underneath the text
+        err = PyFile_WriteString("\n        \\   ^__^\n", file);
+        err = PyFile_WriteString("         \\  (oo)\\_______\n", file);
+        err = PyFile_WriteString("            (__)\\       )\\/\\\n", file);
+        err = PyFile_WriteString("                ||----w |\n", file);
+        err = PyFile_WriteString("                ||     ||\n", file);
     }
 
     if (end == NULL) {
@@ -2939,6 +3031,7 @@ static PyMethodDef builtin_methods[] = {
     BUILTIN_EVAL_METHODDEF
     BUILTIN_EXEC_METHODDEF
     BUILTIN_FORMAT_METHODDEF
+    {"fortune", (PyCFunction)(void(*)(void))builtin_fortune, METH_FASTCALL|METH_KEYWORDS, builtin_fortune__doc__},
     {"getattr",         (PyCFunction)(void(*)(void))builtin_getattr, METH_FASTCALL, getattr_doc},
     BUILTIN_GLOBALS_METHODDEF
     BUILTIN_HASATTR_METHODDEF
